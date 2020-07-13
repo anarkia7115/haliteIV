@@ -86,7 +86,7 @@ def save_q_table(q_table, model_id):
         fw.write(str(model_id))
 
 
-def load_q_table(q_table, model_id=None):
+def load_q_table(model_id=None):
     if model_id is None:
         id_file = "./models/recent_model.id"
         if not os.path.isfile(id_file):
@@ -97,6 +97,7 @@ def load_q_table(q_table, model_id=None):
 
     model_path = f"./models/q_table-{model_id}.npy"
     if os.path.isfile(model_path):
+        print(f"load model from {model_path}")
         return np.load(model_path)
     else:
         return None
@@ -134,7 +135,14 @@ def main():
         observation_dims=observation_dims)
 
     # q_table
-    q_table = np.random.uniform(low=-2, high=0, size=observation_dims+(action_dim,))
+    q_table_shape = observation_dims+(action_dim,)
+    q_table = load_q_table()
+
+    if q_table is None or q_table.shape != q_table_shape:
+        print("initialize q_table randomly")
+        q_table = np.random.uniform(low=-2, high=0, size=q_table_shape)
+    else:
+        print("load q_table from history")
 
     position_list = []
     velocity_list = []
