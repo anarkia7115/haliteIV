@@ -181,7 +181,8 @@ def main():
             #     position=observation[0])
 
             if observation[0] > 0.5:  # pass flag
-                reward = 100
+                # reward = 1_000_000 / (step - 90) ** 2
+                reward = 0
 
             score += reward
 
@@ -197,6 +198,7 @@ def main():
         # decay epsilon
         if epsilon > epsilon_min:
             epsilon = epsilon * epsilon_decay
+            print(f"epsilon decayed to {epsilon}")
 
         # show information every 100 steps
         if episode > 0 and episode % 100 == 0:
