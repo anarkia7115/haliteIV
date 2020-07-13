@@ -152,7 +152,7 @@ def train_while_simulation(
 def decay_episodes(epsilon, epsilon_decay, epsilon_min):
     if epsilon > epsilon_min:
         epsilon = epsilon * epsilon_decay
-        print(f"epsilon decayed to {epsilon}")
+        # print(f"epsilon decayed to {epsilon}")
 
     return epsilon
 
@@ -163,17 +163,31 @@ def split_every_k_steps(steps, step_range):
     ([indices[0] for indices in indice_chunks], 
      [[values[idx] for idx in indices] for indices in indice_chunks])
     """
-    # TODO: finish indice split!
-    # indice_chunks = 
+    def _chunk_indices():
+        indice_buffer = []
+        for i in range(len(steps)):
+            indice_buffer.append(i)
+            if len(indice_buffer) == step_range:
+                yield indice_buffer.copy()
+                indice_buffer.clear()
+
+        if len(indice_buffer) > 0:
+            yield indice_buffer.copy()
+
+    indice_chunks = list(_chunk_indices())
+
     return (
         [indices[0] for indices in indice_chunks], 
         [[steps[idx] for idx in indices] for indices in indice_chunks])
 
 
-def show_episode_infomation(episode, q_table, steps):
+def show_episode_infomation(episode, q_table, steps, epsilon):
 
     # show information every 100 steps
     if episode > 0 and episode % 100 == 0:
+        # show epsilon
+        print(f"epsilon: {epsilon}")
+
         # save q table
         save_q_table(q_table, episode)
 
@@ -183,7 +197,6 @@ def show_episode_infomation(episode, q_table, steps):
             np.apply_along_axis(np.argmax, 2, q_table), 
             fig=plot1, ax = plot1.gca())
         plt.pause(0.01)
-        plot1.clear()
 
         # aggregate steps info
         plot2 = plt.figure(2)
@@ -192,7 +205,8 @@ def show_episode_infomation(episode, q_table, steps):
             step_range = 50
         else:
             step_range = 500
-        episode_x, step_groups = split_every_k_steps(steps, step_range)
+        episode_x, step_groups = split_every_k_steps(
+            [-ss for ss in steps], step_range)
         # max
         max_steps = [np.max(ss) for ss in step_groups]
         plt.plot(episode_x, max_steps, label='max')
@@ -204,6 +218,11 @@ def show_episode_infomation(episode, q_table, steps):
         # min
         min_steps = [np.min(ss) for ss in step_groups]
         plt.plot(episode_x, min_steps, label='min')
+
+        plt.legend(loc=4)
+
+        plt.pause(0.01)
+        plot1.clear()
         plot2.clear()
 
     if steps[-1] < 200:
@@ -229,7 +248,7 @@ def main():
     # split P and V into discrete spaces slice_num_1d x slice_num_1d
 
     hyper_params = HyperParams(
-        learning_rate=0.1, 
+        learning_rate=0.06, 
         discount_factor=0.95
     )
 
@@ -238,12 +257,14 @@ def main():
     velocity_range = (-.07, .07)
 
     action_dim = 3
-    observation_dims = (20, 20)
+    observation_dims = (40, 40)
 
     # epsilon decay
     epsilon = 1
+    epsilon_restore = 0.7
     epsilon_min = 0.05
     epsilon_decay = 0.999
+    epsilon_restore_period = 5000
 
     os_mapper = map_observation_to_state(
         observation_ranges=(position_range, velocity_range), 
@@ -259,6 +280,9 @@ def main():
     else:
         print("load q_table from history")
 
+    # decay state
+    epsilon_restored = False
+
     # stats
     steps = []
 
@@ -269,11 +293,19 @@ def main():
 
         # stats
         steps.append(step)
+        if not epsilon_restored:
+            if min(steps) < 200:  # not randomly hit yet
+                epsilon = epsilon_restore
+                epsilon_restored = True
+
+        # restore epsilon periodically
+        if episode % epsilon_restore_period == 0 and episode > 0:
+            epsilon = epsilon_restore
 
         # decay epsilon
         epsilon = decay_episodes(epsilon, epsilon_decay, epsilon_min)
 
-        show_episode_infomation(episode, q_table, steps)
+        show_episode_infomation(episode, q_table, steps, epsilon)
 
     env.close()
     # position_list = norm_array(position_list)
