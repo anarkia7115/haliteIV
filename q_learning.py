@@ -130,6 +130,11 @@ def main():
     action_dim = 3
     observation_dims = (20, 20)
 
+    # epsilon decay
+    epsilon = 1
+    epsilon_min = 0.05
+    epsilon_decay = 0.999
+
     os_mapper = map_observation_to_state(
         observation_ranges=(position_range, velocity_range), 
         observation_dims=observation_dims)
@@ -161,7 +166,12 @@ def main():
 
             prev_position = observation[0]
             old_state = os_mapper(observation)
-            action = action_from_observation(observation, q_table, os_mapper)
+
+            # choose action
+            if np.random.uniform(0, 1) > epsilon:
+                action = action_from_observation(observation, q_table, os_mapper)
+            else:
+                action = env.action_space.sample()
 
             observation, reward, done, info = env.step(action)
             new_state = os_mapper(observation)
@@ -169,6 +179,9 @@ def main():
             # reward = calculate_reward(
             #     prev_position=prev_position,
             #     position=observation[0])
+
+            if observation[0] > 0.5:  # pass flag
+                reward = 100
 
             score += reward
 
@@ -179,6 +192,13 @@ def main():
 
             step += 1
 
+            # end of actions in environment
+
+        # decay epsilon
+        if epsilon > epsilon_min:
+            epsilon = epsilon * epsilon_decay
+
+        # show information every 100 steps
         if episode > 0 and episode % 100 == 0:
             save_q_table(q_table, episode)
             print(q_table.shape)
@@ -193,8 +213,8 @@ def main():
             print(f"{episode}: we made it at step: {step}")
         # print(f"{episode}: done step: {step}")
         # print(f"{episode}: position: {observation[0]}")
-        position_list.append(observation[0])
-        velocity_list.append(observation[1])
+        # position_list.append(observation[0])
+        # velocity_list.append(observation[1])
 
         # plt.scatter(episode, observation[0], color='green') # position
         # plt.scatter(episode, observation[1]*10, color='red')  # velocity
@@ -204,8 +224,8 @@ def main():
             plt.pause(0.001)
 
     env.close()
-    position_list = norm_array(position_list)
-    velocity_list = norm_array(velocity_list, shift=False)
+    # position_list = norm_array(position_list)
+    # velocity_list = norm_array(velocity_list, shift=False)
     plt.show()
 
 
