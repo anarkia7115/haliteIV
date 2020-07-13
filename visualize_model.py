@@ -11,7 +11,7 @@ def list_all_models():
 
 
 def draw_matrix(data, fig, ax):
-    psm = ax.pcolormesh(data, rasterized=True, vmin=-4, vmax=4)
+    psm = ax.pcolormesh(data, rasterized=True)
     fig.colorbar(psm, ax=ax)
 
 def put_text_on_matrix(data, fig, ax):
@@ -20,7 +20,6 @@ def put_text_on_matrix(data, fig, ax):
     for xi in range(xdim):
         for yi in range(ydim):
             data[xi][yi]
-
 
 
 def main():
