@@ -157,12 +157,27 @@ def decay_episodes(epsilon, epsilon_decay, epsilon_min):
     return epsilon
 
 
-def show_episode_infomation(episode, q_table, step):
+def split_every_k_steps(steps, step_range):
+    """
+    indice_chunks: 0, 1, 2, 3; 4, 5, 6, 7; 8, 9
+    ([indices[0] for indices in indice_chunks], 
+     [[values[idx] for idx in indices] for indices in indice_chunks])
+    """
+    # TODO: finish indice split!
+    # indice_chunks = 
+    return (
+        [indices[0] for indices in indice_chunks], 
+        [[steps[idx] for idx in indices] for indices in indice_chunks])
+
+
+def show_episode_infomation(episode, q_table, steps):
 
     # show information every 100 steps
     if episode > 0 and episode % 100 == 0:
+        # save q table
         save_q_table(q_table, episode)
-        print(q_table.shape)
+
+        # draw q table
         plot1 = plt.figure(1)
         draw_matrix(
             np.apply_along_axis(np.argmax, 2, q_table), 
@@ -170,18 +185,30 @@ def show_episode_infomation(episode, q_table, step):
         plt.pause(0.01)
         plot1.clear()
 
-    if step < 200:
-        print(f"{episode}: we made it at step: {step}")
-    # print(f"{episode}: done step: {step}")
-    # print(f"{episode}: position: {observation[0]}")
-    # position_list.append(observation[0])
-    # velocity_list.append(observation[1])
+        # aggregate steps info
+        plot2 = plt.figure(2)
 
-    # plt.scatter(episode, observation[0], color='green') # position
-    # plt.scatter(episode, observation[1]*10, color='red')  # velocity
+        if episode < 1000:
+            step_range = 50
+        else:
+            step_range = 500
+        episode_x, step_groups = split_every_k_steps(steps, step_range)
+        # max
+        max_steps = [np.max(ss) for ss in step_groups]
+        plt.plot(episode_x, max_steps, label='max')
 
-    # plot2 = plt.figure(2)
-    # plt.scatter(episode, score, color='blue') # score
+        # average
+        mean_steps = [np.mean(ss) for ss in step_groups]
+        plt.plot(episode_x, mean_steps, label='avg')
+
+        # min
+        min_steps = [np.min(ss) for ss in step_groups]
+        plt.plot(episode_x, min_steps, label='min')
+        plot2.clear()
+
+    if steps[-1] < 200:
+        print(f"{episode}: we made it at step: {steps[-1]}")
+
     if episode % 1000 == 0:
         plt.pause(0.001)
 
@@ -209,7 +236,7 @@ def main():
     # observations
     position_range = (-1.2, 0.6)
     velocity_range = (-.07, .07)
-    slice_num_1d = 20
+
     action_dim = 3
     observation_dims = (20, 20)
 
@@ -232,15 +259,21 @@ def main():
     else:
         print("load q_table from history")
 
+    # stats
+    steps = []
+
     for episode in range(EPISODES):
         step = train_while_simulation( 
             episode, env, os_mapper, 
             epsilon, q_table, hyper_params)
 
+        # stats
+        steps.append(step)
+
         # decay epsilon
         epsilon = decay_episodes(epsilon, epsilon_decay, epsilon_min)
 
-        show_episode_infomation(episode, q_table, step)
+        show_episode_infomation(episode, q_table, steps)
 
     env.close()
     # position_list = norm_array(position_list)
