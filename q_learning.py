@@ -103,6 +103,89 @@ def load_q_table(model_id=None):
         return None
 
 
+def train_while_simulation(
+        episode, env, os_mapper, 
+        epsilon, q_table, hyper_params):
+
+    step = 0
+    score = 0
+    done = False
+    observation = env.reset()
+
+    while not done:
+
+        # show results
+        if episode > 0 and episode % 1000 == 0:
+            env.render()
+
+        old_state = os_mapper(observation)
+
+        # choose action
+        if np.random.uniform(0, 1) > epsilon:
+            action = action_from_observation(observation, q_table, os_mapper)
+        else:
+            action = env.action_space.sample()
+
+        observation, reward, done, _ = env.step(action)
+        new_state = os_mapper(observation)
+
+        # reward = calculate_reward(
+        #     prev_position=prev_position,
+        #     position=observation[0])
+
+        if observation[0] > 0.5:  # pass flag
+            # reward = 1_000_000 / (step - 90) ** 2
+            reward = 0
+
+        score += reward
+
+        learn_from_reward(
+            reward, q_table, 
+            old_state, new_state, 
+            action, hyper_params)
+
+        step += 1
+
+    return step
+
+
+def decay_episodes(epsilon, epsilon_decay, epsilon_min):
+    if epsilon > epsilon_min:
+        epsilon = epsilon * epsilon_decay
+        print(f"epsilon decayed to {epsilon}")
+
+    return epsilon
+
+
+def show_episode_infomation(episode, q_table, step):
+
+    # show information every 100 steps
+    if episode > 0 and episode % 100 == 0:
+        save_q_table(q_table, episode)
+        print(q_table.shape)
+        plot1 = plt.figure(1)
+        draw_matrix(
+            np.apply_along_axis(np.argmax, 2, q_table), 
+            fig=plot1, ax = plot1.gca())
+        plt.pause(0.01)
+        plot1.clear()
+
+    if step < 200:
+        print(f"{episode}: we made it at step: {step}")
+    # print(f"{episode}: done step: {step}")
+    # print(f"{episode}: position: {observation[0]}")
+    # position_list.append(observation[0])
+    # velocity_list.append(observation[1])
+
+    # plt.scatter(episode, observation[0], color='green') # position
+    # plt.scatter(episode, observation[1]*10, color='red')  # velocity
+
+    # plot2 = plt.figure(2)
+    # plt.scatter(episode, score, color='blue') # score
+    if episode % 1000 == 0:
+        plt.pause(0.001)
+
+
 def main():
     # get environment
     env = get_env()
@@ -149,81 +232,15 @@ def main():
     else:
         print("load q_table from history")
 
-    position_list = []
-    velocity_list = []
-
     for episode in range(EPISODES):
-        step = 0
-        observation = env.reset()
-        done = False
-        score = 0
-
-        while not done:
-
-            # show results
-            if episode > 0 and episode % 1000 == 0:
-                env.render()
-
-            prev_position = observation[0]
-            old_state = os_mapper(observation)
-
-            # choose action
-            if np.random.uniform(0, 1) > epsilon:
-                action = action_from_observation(observation, q_table, os_mapper)
-            else:
-                action = env.action_space.sample()
-
-            observation, reward, done, info = env.step(action)
-            new_state = os_mapper(observation)
-
-            # reward = calculate_reward(
-            #     prev_position=prev_position,
-            #     position=observation[0])
-
-            if observation[0] > 0.5:  # pass flag
-                # reward = 1_000_000 / (step - 90) ** 2
-                reward = 0
-
-            score += reward
-
-            learn_from_reward(
-                reward, q_table, 
-                old_state, new_state, 
-                action, hyper_params)
-
-            step += 1
-
-            # end of actions in environment
+        step = train_while_simulation( 
+            episode, env, os_mapper, 
+            epsilon, q_table, hyper_params)
 
         # decay epsilon
-        if epsilon > epsilon_min:
-            epsilon = epsilon * epsilon_decay
-            print(f"epsilon decayed to {epsilon}")
+        epsilon = decay_episodes(epsilon, epsilon_decay, epsilon_min)
 
-        # show information every 100 steps
-        if episode > 0 and episode % 100 == 0:
-            save_q_table(q_table, episode)
-            print(q_table.shape)
-            plot1 = plt.figure(1)
-            draw_matrix(
-                np.apply_along_axis(np.argmax, 2, q_table), 
-                fig=plot1, ax = plot1.gca())
-            plt.pause(0.01)
-            plot1.clear()
-
-        if step < 200:
-            print(f"{episode}: we made it at step: {step}")
-        # print(f"{episode}: done step: {step}")
-        # print(f"{episode}: position: {observation[0]}")
-        # position_list.append(observation[0])
-        # velocity_list.append(observation[1])
-
-        # plt.scatter(episode, observation[0], color='green') # position
-        # plt.scatter(episode, observation[1]*10, color='red')  # velocity
-        plot2 = plt.figure(2)
-        plt.scatter(episode, score, color='blue') # score
-        if episode % 1000 == 0:
-            plt.pause(0.001)
+        show_episode_infomation(episode, q_table, step)
 
     env.close()
     # position_list = norm_array(position_list)
