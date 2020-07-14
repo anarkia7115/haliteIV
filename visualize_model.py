@@ -28,7 +28,7 @@ def majority_action(action_list):
     return np.argmax(b)
 
 
-def action_along_value(q_table, action_axis, feature_names=None):
+def actions_along_features(q_table, action_axis, feature_names=None):
     """
     Result: 
         position 0, 1, 2, 3, 4
@@ -54,10 +54,23 @@ def action_along_value(q_table, action_axis, feature_names=None):
         return majority_action(arr_1d)
 
     for feature_axis in range(feature_num):
-        action_along_feature = np.apply_along_axis(
+        actions = np.apply_along_axis(
             _flatten_majority, axis=feature_axis, arr=action_table)
 
-    pass
+        yield (feature_names[feature_axis], actions)
+
+
+def plot_colorbar(ax, arr, label):
+    ax.pcolormesh(np.reshape(arr, (-1, 1)).T, rasterized=True)
+    ax.set_ylabel(label)
+
+
+def plot_actions_along_features(axs, q_table, action_axis, feature_names=None):
+
+    for ax, (feature_name, actions) in zip(axs, 
+            actions_along_features(q_table, action_axis, feature_names)):
+        plot_colorbar(ax, actions, feature_name)
+
 
 
 def main():

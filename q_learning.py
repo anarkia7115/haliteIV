@@ -5,7 +5,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import gym
 
-from visualize_model import draw_matrix
+from visualize_model import draw_matrix, \
+    plot_actions_along_features
 
 class HyperParams:
     def __init__(self, learning_rate, discount_factor):
@@ -191,16 +192,25 @@ def show_episode_infomation(episode, q_table, steps, epsilon):
         # save q table
         save_q_table(q_table, episode)
 
+        # initialize axes
+        feature_num = q_table.ndim-1
+        grid_rows = feature_num*2+1
+
+        plot1 = plt.figure(1, figsize=(4, 8))
+        gs = plot1.add_gridspec(grid_rows, feature_num)
+        ax_q_table = plot1.add_subplot(gs[:feature_num, :])
+        ax_stats = plot1.add_subplot(gs[feature_num, :])
+        action_axs = [plot1.add_subplot(gs[pos, :]) 
+            for pos in range(feature_num+1, grid_rows)]
+        assert len(action_axs) == feature_num
+
         # draw q table
-        plot1 = plt.figure(1)
         draw_matrix(
             np.apply_along_axis(np.argmax, 2, q_table), 
-            fig=plot1, ax = plot1.gca())
+            fig=plot1, ax=ax_q_table)
         plt.pause(0.01)
 
         # aggregate steps info
-        plot2 = plt.figure(2)
-
         if episode < 1000:
             step_range = 50
         else:
@@ -209,21 +219,25 @@ def show_episode_infomation(episode, q_table, steps, epsilon):
             [-ss for ss in steps], step_range)
         # max
         max_steps = [np.max(ss) for ss in step_groups]
-        plt.plot(episode_x, max_steps, label='max')
+        ax_stats.plot(episode_x, max_steps, label='max')
 
         # average
         mean_steps = [np.mean(ss) for ss in step_groups]
-        plt.plot(episode_x, mean_steps, label='avg')
+        ax_stats.plot(episode_x, mean_steps, label='avg')
 
         # min
         min_steps = [np.min(ss) for ss in step_groups]
-        plt.plot(episode_x, min_steps, label='min')
+        ax_stats.plot(episode_x, min_steps, label='min')
 
-        plt.legend(loc=4)
+        ax_stats.legend(loc=2)
+
+
+        # draw actions_along_features
+        plot_actions_along_features(action_axs, q_table, 
+            q_table.ndim - 1, feature_names=["position", "velocity"])
 
         plt.pause(0.01)
         plot1.clear()
-        plot2.clear()
 
     if steps[-1] < 200:
         print(f"{episode}: we made it at step: {steps[-1]}")
