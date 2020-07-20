@@ -1,5 +1,6 @@
 import glob
 
+import torch
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -72,15 +73,37 @@ def plot_actions_along_features(axs, q_table, action_axis, feature_names=None):
         plot_colorbar(ax, actions, feature_name)
 
 
+def cartesian_product(*array):
+    la = len(array)
+    target_arr_shape = [len(a) for a in array] + [la]
+    arr = torch.empty(target_arr_shape)
+    for i, a in enumerate(array):
+        new_shape = [1] * la
+        new_shape[i] = len(a)
+        arr[...,i] = a.reshape(new_shape)
+
+    return arr
+
+def q_net_to_q_table(q_net, oss):
+    steps = 20
+    position_lin = torch.linspace(oss.low[0], oss.high[0], steps)
+    velocity_lin = torch.linspace(oss.low[1], oss.high[1], steps)
+    return cartesian_product(position_lin, velocity_lin)
+
 
 def main():
     # list all models
     # list_of_models = list_all_models()
     # print(list_of_models)
-    mat = np.random.randn(10, 20)
+    # mat = np.random.randn(10, 20)
     # draw_matrix(mat)
     # plt.show()
+    pass
 
 
 if __name__ == "__main__":
-    main()
+    # main()
+    xx = torch.linspace(0, 1, 20)
+    yy = torch.linspace(2, 3, 12)
+    arr = cartesian_product(xx, yy)
+    print(arr.shape)
