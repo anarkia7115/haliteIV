@@ -9,8 +9,6 @@ def test_q_net_to_q_table():
     env = get_env()
     q_table = q_net_to_q_table(q_net, env.observation_space).detach()
 
-    print(q_table.shape)
-
     fig, axs = plt.subplots(2, 1)
 
     plot_actions_along_features(axs, q_table, q_table.ndim-1, ["position", "velocity"])

@@ -67,9 +67,10 @@ def plot_colorbar(ax, arr, label):
     ax.set_ylabel(label, fontsize=15)
 
 
-def plot_actions_along_features(axs, q_table, action_axis_pos, feature_names=None):
+def plot_actions_along_features(axs, q_table, action_axis_pos=None, feature_names=None):
 
-    print(f"q_table shape: {q_table.shape}")
+    if action_axis_pos is None:
+        action_axis_pos = q_table.ndim-1
     for ax, (feature_name, actions) in zip(axs, 
             actions_along_features(q_table, action_axis_pos, feature_names)):
         plot_colorbar(ax, actions, feature_name)
