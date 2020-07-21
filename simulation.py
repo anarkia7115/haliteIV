@@ -49,7 +49,7 @@ class EnvRunner:
             steps += 1
             # end of while
 
-        print(steps)
+        # print(steps)
 
         self.total_round += 1
 
@@ -62,7 +62,7 @@ class EnvRunner:
         self.epsilon_restore_period = 1000
         self.epsilon_restore = 0.2
         self.epsilon_min = 0.05
-        self.epsilon_decay = 0.993
+        self.epsilon_decay = 0.9
 
     def epsilon_update(self, episode):
         # restore epsilon periodically
