@@ -6,7 +6,7 @@ from torch import nn
 
 
 class QNet(nn.Module):
-    def __init__(self, num_inputs, num_classes, dropout_prob=0.01):
+    def __init__(self, num_inputs, num_classes, dropout_prob=0):
         super(QNet, self).__init__()
     
         self.pipe = nn.Sequential(
@@ -33,7 +33,7 @@ class ModelTranner:
         S = np.concatenate([xxx[0] for xxx in xx]).reshape(-1, 2)
         A = torch.tensor([xxx[1] for xxx in xx], dtype=torch.int64)
 
-        prob_y = q_hat(torch.Tensor(S))
+        prob_y = self.q_net(torch.Tensor(S))
         pred_y = prob_y.gather(
             1, A.unsqueeze(-1)
         ).squeeze(-1)
@@ -48,7 +48,7 @@ class ModelTranner:
         y = R + gamma * max(Q_hat(S))
                             m
         """
-        q_gamma = 0.1
+        q_gamma = 0.95
         Sp = np.concatenate([xxx[3] for xxx in xx]).reshape(-1, 2)
         m = q_hat(torch.Tensor(Sp)).max(dim=1)
         masked_m = torch.Tensor(yy)* m.values
@@ -57,9 +57,11 @@ class ModelTranner:
         return Y
 
     def train(self, x_batch, y_batch, q_hat):
+        print(f"size of x in train: {len(x_batch)}")
         self.optimizer.zero_grad()
         loss = self.compute_loss(x_batch, y_batch, q_hat)
         loss.backward()
+        print(f"loss: {loss}")
 
         self.optimizer.step()
 
