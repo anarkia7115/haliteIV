@@ -12,5 +12,16 @@ def test_plot_and_clear():
             ax.cla()
 
 
+def test_colorbar():
+    fig, ax = plt.subplots()
+    for i in range(10):
+        psm = ax.pcolormesh(np.random.randn(10, 10), 
+            rasterized=True)
+        fig.colorbar(psm, ax=ax)
+        plt.pause(1)
+        fig.clear()
+        ax.clear()
+
+
 if __name__ == "__main__":
-    test_plot_and_clear()
+    test_colorbar()
