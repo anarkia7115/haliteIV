@@ -39,7 +39,8 @@ def actions_along_features(q_table, action_axis, feature_names=None):
     Input: 
         q_table: (dim1, dim2, dim3, action_dim)
     """
-    action_table = np.apply_along_axis(np.argmax, axis=action_axis, arr=q_table)
+    action_table = np.apply_along_axis(np.argmax, 
+        axis=action_axis, arr=q_table)
     feature_num = action_table.ndim
 
     # initialize feature names if is None
@@ -63,13 +64,14 @@ def actions_along_features(q_table, action_axis, feature_names=None):
 
 def plot_colorbar(ax, arr, label):
     ax.pcolormesh(np.reshape(arr, (-1, 1)).T, rasterized=True)
-    ax.set_ylabel(label)
+    ax.set_ylabel(label, fontsize=15)
 
 
-def plot_actions_along_features(axs, q_table, action_axis, feature_names=None):
+def plot_actions_along_features(axs, q_table, action_axis_pos, feature_names=None):
 
+    print(f"q_table shape: {q_table.shape}")
     for ax, (feature_name, actions) in zip(axs, 
-            actions_along_features(q_table, action_axis, feature_names)):
+            actions_along_features(q_table, action_axis_pos, feature_names)):
         plot_colorbar(ax, actions, feature_name)
 
 
@@ -84,11 +86,11 @@ def cartesian_product(*array):
 
     return arr
 
-def q_net_to_q_table(q_net, oss):
-    steps = 20
+def q_net_to_q_table(q_net, oss, steps=20):
     position_lin = torch.linspace(oss.low[0], oss.high[0], steps)
     velocity_lin = torch.linspace(oss.low[1], oss.high[1], steps)
-    return cartesian_product(position_lin, velocity_lin)
+    simulated_input = cartesian_product(position_lin, velocity_lin)
+    return q_net(simulated_input)
 
 
 def main():
