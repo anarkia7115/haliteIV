@@ -6,7 +6,7 @@ from torch import nn
 
 
 class QNet(nn.Module):
-    def __init__(self, num_inputs, num_classes, dropout_prob=0.3):
+    def __init__(self, num_inputs, num_classes, dropout_prob=0.01):
         super(QNet, self).__init__()
     
         self.pipe = nn.Sequential(
