@@ -91,7 +91,7 @@ def q_net_to_q_table(q_net, oss, steps=20):
     position_lin = torch.linspace(oss.low[0], oss.high[0], steps)
     velocity_lin = torch.linspace(oss.low[1], oss.high[1], steps)
     simulated_input = cartesian_product(position_lin, velocity_lin)
-    return q_net(simulated_input)
+    return q_net(simulated_input).detach()
 
 
 def main():
