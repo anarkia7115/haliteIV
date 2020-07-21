@@ -6,8 +6,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 import gym
 
-from visualize_model import draw_matrix, \
-    plot_actions_along_features, q_net_to_q_table
+from visualize_model import \
+    plot_actions_along_features, q_net_to_q_table, \
+    visualize_q_net
 from dql_model import QNet, DataLoader, ModelTranner
 from simulation import EnvRunner
 
@@ -254,14 +255,6 @@ def run_with_q_net(env, q_net):
         observation, reward, done, info = env.step(action)
 
 
-def visualize_q_net(axs, q_net, env):
-
-    plot_actions_along_features(axs, 
-        q_net_to_q_table(q_net, env.observation_space))
-    plt.pause(0.1)
-    for ax in axs:
-        ax.cla()
-
 def main_dql():
     """
     1-3
@@ -282,7 +275,7 @@ def main_dql():
     q_hat = QNet(2, 3)
     q_hat.load_state_dict(q_net.state_dict())
 
-    trainer = ModelTranner(q_net, lr=0.01)
+    trainer = ModelTranner(q_net, lr=0.1)
 
     # initialize env
     env = get_env()
@@ -304,15 +297,29 @@ def main_dql():
     play_rounds = 3
     q_hat_update_period = 2
 
-    run_with_q_net(env, q_net)
-    fig, axs = plt.subplots(2, 1)
+    # run_with_q_net(env, q_net)
 
-    visualize_q_net(axs, q_net, env)
+    fig1 = plt.figure(1, figsize=(15, 10))
+    gs = fig1.add_gridspec(4, 6)
+    ax_q_table = fig1.add_subplot(gs[:2, :2])
+    nn_axs = [None, None, None]
+    nn_axs[0] = fig1.add_subplot(gs[0:2, 2:4])
+    nn_axs[1] = fig1.add_subplot(gs[2:4, 2:4])
+    nn_axs[2] = fig1.add_subplot(gs[0:2, 4:6])
+
+    action_axs = [fig1.add_subplot(gs[pos, :2])
+        for pos in range(2, 4)]
+
+    def _visualizer():
+        visualize_q_net(fig1, nn_axs, 
+            action_axs, ax_q_table, 
+            q_net, env)
 
     for epoch in range(1000):
         print(f"epoch: {epoch}")
         runner.run_n_episode(play_rounds)
-        xx, yy = dl.next_batch()
+        xx, yy = dl.data_x, dl.data_y
+        # xx, yy = dl.next_batch()
         trainer.train(xx, yy, q_hat)
 
         # update q_hat periodically
@@ -324,7 +331,7 @@ def main_dql():
             run_with_q_net(env, q_net)
 
         if epoch % 5 == 4:
-            visualize_q_net(axs, q_net, env)
+            _visualizer()
 
     env.close()
 

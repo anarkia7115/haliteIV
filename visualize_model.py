@@ -13,8 +13,10 @@ def list_all_models():
 
 def draw_matrix(data, fig, ax):
     psm = ax.pcolormesh(data, rasterized=True)
-    fig.colorbar(psm, ax=ax)
+    return psm
 
+def draw_colorbar(psm):
+    fig.colorbar(psm, ax=ax)
 
 def put_text_on_matrix(data, fig, ax):
     xdim = data.shape[0]
@@ -92,6 +94,28 @@ def q_net_to_q_table(q_net, oss, steps=20):
     velocity_lin = torch.linspace(oss.low[1], oss.high[1], steps)
     simulated_input = cartesian_product(position_lin, velocity_lin)
     return q_net(simulated_input).detach()
+
+def visualize_q_net(fig, nn_axs, 
+        action_axs, ax_q_table, 
+        q_net, env):
+
+    sim_q_table = q_net_to_q_table(q_net, env.observation_space)
+    plot_actions_along_features(action_axs, 
+        sim_q_table)
+    draw_matrix(np.apply_along_axis(
+        np.argmax, 2, sim_q_table), 
+        fig=fig, ax=ax_q_table
+    )
+    draw_matrix(sim_q_table[...,0], 
+        fig=fig, ax=nn_axs[0])
+    draw_matrix(sim_q_table[...,1], 
+        fig=fig, ax=nn_axs[1])
+    draw_matrix(sim_q_table[...,2], 
+        fig=fig, ax=nn_axs[2])
+    plt.pause(0.1)
+    for ax in action_axs + nn_axs:
+        ax.cla()
+    ax_q_table.cla()
 
 
 def main():
