@@ -7,7 +7,7 @@ import numpy as np
 import gym
 
 from visualize_model import draw_matrix, \
-    plot_actions_along_features
+    plot_actions_along_features, q_net_to_q_table
 from dql_model import QNet, DataLoader, ModelTranner
 from simulation import EnvRunner
 
@@ -254,6 +254,14 @@ def run_with_q_net(env, q_net):
         observation, reward, done, info = env.step(action)
 
 
+def visualize_q_net(axs, q_net, env):
+
+    plot_actions_along_features(axs, 
+        q_net_to_q_table(q_net, env.observation_space))
+    plt.pause(0.1)
+    for ax in axs:
+        ax.cla()
+
 def main_dql():
     """
     1-3
@@ -294,15 +302,19 @@ def main_dql():
 
     # run and train
     play_rounds = 3
-    q_hat_update_period = 1
+    q_hat_update_period = 2
 
     run_with_q_net(env, q_net)
+    fig, axs = plt.subplots(2, 1)
+
+    visualize_q_net(axs, q_net, env)
 
     for epoch in range(1000):
         print(f"epoch: {epoch}")
         runner.run_n_episode(play_rounds)
         xx, yy = dl.next_batch()
         trainer.train(xx, yy, q_hat)
+
         # update q_hat periodically
         if epoch % q_hat_update_period == q_hat_update_period -1:
             q_hat.load_state_dict(q_net.state_dict())
@@ -310,6 +322,10 @@ def main_dql():
 
         if epoch % 100 == 99:
             run_with_q_net(env, q_net)
+
+        if epoch % 5 == 4:
+            visualize_q_net(axs, q_net, env)
+
     env.close()
 
 
