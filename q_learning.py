@@ -262,8 +262,8 @@ def main():
     # split P and V into discrete spaces slice_num_1d x slice_num_1d
 
     hyper_params = HyperParams(
-        learning_rate=0.06, 
-        discount_factor=0.95
+        learning_rate=0.01, 
+        discount_factor=0.92
     )
 
     # observations
@@ -274,11 +274,11 @@ def main():
     observation_dims = (40, 40)
 
     # epsilon decay
-    epsilon = 1
-    epsilon_restore = 0.7
+    epsilon = 0.7
+    epsilon_restore = 0.3
     epsilon_min = 0.05
-    epsilon_decay = 0.999
-    epsilon_restore_period = 5000
+    epsilon_decay = 0.991
+    epsilon_restore_period = 1000
 
     os_mapper = map_observation_to_state(
         observation_ranges=(position_range, velocity_range), 
