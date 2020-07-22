@@ -106,12 +106,11 @@ def visualize_q_net(fig, nn_axs,
         np.argmax, 2, sim_q_table), 
         fig=fig, ax=ax_q_table
     )
-    draw_matrix(sim_q_table[...,0], 
-        fig=fig, ax=nn_axs[0])
-    draw_matrix(sim_q_table[...,1], 
-        fig=fig, ax=nn_axs[1])
-    draw_matrix(sim_q_table[...,2], 
-        fig=fig, ax=nn_axs[2])
+
+    for ax_id in range(len(nn_axs)):
+        draw_matrix(sim_q_table[...,ax_id], 
+            fig=fig, ax=nn_axs[ax_id])
+
     plt.pause(0.1)
     for ax in action_axs + nn_axs:
         ax.cla()
