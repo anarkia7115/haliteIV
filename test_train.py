@@ -107,6 +107,24 @@ def circle_data_generator():
     return xx, yy
 
 
+def create_data_mesh(xx):
+    range_x = (
+        xx[...,0].min(), 
+        xx[...,0].max()
+    )
+
+    range_y = (
+        xx[...,1].min(), 
+        xx[...,1].max()
+    )
+
+    X,Y = np.mgrid[
+        range_x[0]:range_x[1]:0.1, 
+        range_y[0]:range_y[1]:0.1]
+
+    return np.stack([X, Y], axis=-1)
+
+
 def test_train_circle():
     """
     1. generate circle data
