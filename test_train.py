@@ -1,10 +1,12 @@
 import matplotlib.pyplot as plt
 
+from sklearn.metrics import precision_score
 import numpy as np
 import torch
 from torch import nn
 
 from dql_model import DataLoader
+from visualize_model import visualize_q_net
 
 
 def target_func(k, b):
@@ -25,7 +27,7 @@ def plot_model(model, x):
 def scatter(x, y):
     plt.scatter(x, y)
 
-def test_train():
+def test_train_linear():
     """
     1. load data, plot data
     2. init model, plot model
@@ -83,6 +85,75 @@ def test_train():
     fig.suptitle(f"k:{k}, b:{b}")
     plt.show()
 
+def circle_data_generator():
+    """
+        0 - in circle
+        1 - on circle
+        2 - out circle
+        radius = 0.8
+    """
+    width = 0.3
+    centerx = centery = center = 2
+    radius = center * 1.5
+    xx = np.random.randn(1000, 2)*radius + center
+    def _func_y(point):
+        if (point[0] - centerx)**2 + (point[1] - centery) **2 < (radius-width)**2:
+            return 0
+        elif (point[0] - centerx)**2 + (point[1] - centery) **2 < (radius+width)**2:
+            return 1
+        else:
+            return 2
+    yy = np.apply_along_axis(_func_y, axis=1, arr=xx)
+    return xx, yy
+
+
+def test_train_circle():
+    """
+    1. generate circle data
+    2. visualize circle data
+    3. train on data
+    4. visualize NN
+    """
+    """
+    x, y E [0, 1] x [0, 1]
+    """
+
+    # generate data
+    xx, yy = circle_data_generator()
+
+    # show circle data
+    fig2 = plt.figure(2, figsize=(10, 10))
+    plt.scatter(xx[...,0], xx[...,1], c=yy)
+    plt.pause(0.1)
+
+    from dql_model import QNet
+    q_net = QNet(2, 3)
+
+    dl = DataLoader(xx, yy, batch_size=256)
+
+    optimizer = torch.optim.SGD(q_net.parameters(), lr=0.001)
+    loss_func = nn.NLLLoss()
+
+    print(q_net)
+
+    for i in range(1000):
+        x_batch, y_batch = dl.next_batch()
+        # plt.scatter(np.array(x_batch)[...,0], np.array(x_batch)[...,1], c=y_batch)
+        y_lsm = q_net(torch.Tensor(x_batch))
+        # y_pred = y_prob.argmax(dim=1)
+
+        loss = loss_func(y_lsm, torch.tensor(y_batch, dtype=torch.int64))
+        loss.backward()
+        optimizer.step()
+
+        if i % 10 == 0:
+            print(i)
+            print(f"loss: {loss}")
+            precision = precision_score(
+                y_batch, 
+                q_net(torch.Tensor(x_batch)).argmax(dim=-1), 
+                average='micro')
+            print(f"precision: {precision}")
 
 if __name__ == "__main__":
-    test_train()
+    test_train_circle()
