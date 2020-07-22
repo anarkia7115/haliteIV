@@ -17,7 +17,7 @@ class QNet(nn.Module):
             nn.Linear(8, 5), 
             nn.Tanh(), 
             nn.Linear(5, num_classes), 
-            nn.LogSoftmax()
+            nn.LogSoftmax(dim=3)
         )
 
     def forward(self, x):
