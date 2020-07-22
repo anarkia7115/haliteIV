@@ -6,17 +6,18 @@ from torch import nn
 
 
 class QNet(nn.Module):
-    def __init__(self, num_inputs, num_classes, dropout_prob=0):
+    def __init__(self, num_inputs, num_classes):
         super(QNet, self).__init__()
     
-        self.pipe = nn.Sequential(
-            nn.Linear(num_inputs, 5), 
-            nn.ReLU(), 
-            nn.Linear(5, 20), 
-            nn.ReLU(), 
-            nn.Linear(20, num_classes), 
-            nn.Dropout(p=dropout_prob), 
-            nn.Softmax(dim=1)
+        self.pipe = nn.Sequential(  
+            nn.Linear(num_inputs, 20), 
+            nn.Tanh(), 
+            nn.Linear(20, 8), 
+            nn.Tanh(), 
+            nn.Linear(8, 5), 
+            nn.Tanh(), 
+            nn.Linear(5, num_classes), 
+            nn.LogSoftmax()
         )
 
     def forward(self, x):
