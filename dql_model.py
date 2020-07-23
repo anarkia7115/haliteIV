@@ -10,14 +10,14 @@ class QNet(nn.Module):
         super(QNet, self).__init__()
     
         self.pipe = nn.Sequential(  
-            nn.Linear(num_inputs, 20), 
+            nn.Linear(num_inputs, 10), 
             nn.Tanh(), 
-            nn.Linear(20, 8), 
+            nn.Linear(10, 10), 
             nn.Tanh(), 
-            nn.Linear(8, 5), 
+            nn.Linear(10, 5), 
             nn.Tanh(), 
             nn.Linear(5, num_classes), 
-            nn.LogSoftmax(dim=3)
+            nn.LogSoftmax(dim=-1)
         )
 
     def forward(self, x):
