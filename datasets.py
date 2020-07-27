@@ -1,6 +1,11 @@
+import matplotlib.pyplot as plt
+
 import torch
 from torch.utils.data import Dataset
 
+
+class BinaryCircleDataset(Dataset):
+    pass
 
 class CircleDataset(Dataset):
     def __init__(self, sample_num=1000):
@@ -11,6 +16,15 @@ class CircleDataset(Dataset):
         self.radius = self.center * 1.5
 
         self.xx = self.circle_data_generator()
+
+    def scatter(self):
+        xx, yy, cc = [], [], []
+        for xx_, yy_ in self:
+            xx.append(xx_[0])
+            yy.append(xx_[1])
+            cc.append(yy_)
+
+        plt.scatter(xx, yy, c=cc)
 
     def __len__(self):
         return len(self.xx)
