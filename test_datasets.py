@@ -3,7 +3,8 @@ from datasets import *
 
 
 def test_circle_dataset():
-    ds = CircleDataset()
+    ds = BinaryCircleDataset()
+    # ds = CircleDataset()
     ds.scatter()
     plt.show()
 
