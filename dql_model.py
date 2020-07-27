@@ -12,11 +12,13 @@ class QNet(nn.Module):
         self.pipe = nn.Sequential(  
             nn.Linear(num_inputs, 10), 
             nn.Tanh(), 
-            nn.Linear(10, 10), 
+            nn.Linear(10, 20), 
             nn.Tanh(), 
-            nn.Linear(10, 5), 
+            nn.Linear(20, 20), 
             nn.Tanh(), 
-            nn.Linear(5, num_classes), 
+            nn.Linear(20, 30), 
+            nn.Tanh(), 
+            nn.Linear(30, num_classes), 
             nn.LogSoftmax(dim=-1)
         )
 
