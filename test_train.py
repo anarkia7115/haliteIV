@@ -183,7 +183,44 @@ def init_model_layers_axs(model, plot, gs, layer_ids):
     return ax_mat
 
 
+def load_circle_data():
+    ds = CircleDataset(sample_num=20)
+
+    mesh = create_data_mesh(ds)
+    train_size = int(len(ds) * 0.8)
+    test_size = len(ds) - train_size
+
+    ds_tr, ds_te = random_split(ds, [train_size, test_size])
+    dl_tr = DataLoader(ds_tr, batch_size=64)
+    dl_te = DataLoader(ds_te, batch_size=64)
+
+    return dl_tr, dl_te
+
+
 def test_train_circle():
+    dl_tr, dl_te = load_circle_data()
+    q_net = QNet(2, 3)
+    optimizer = torch.optim.SGD(q_net.parameters(), lr=0.001)
+
+    loss_func = nn.NLLLoss()
+
+    max_epoches = 100
+    for epoch in range(max_epoches):
+        for xx, yy in dl_tr:
+            y_lsm = q_net(xx)
+            loss_val = loss_func(y_lsm, yy)
+            loss_val.backward()
+            optimizer.step()
+        if epoch % 10 == 9:
+            print(f"epoch: {epoch}")
+            print(f"loss: {loss_val}")
+            print(f"y_lsm: {y_lsm}")
+            print(f"xx: {xx}")
+            print(f"yy: {yy}")
+    
+
+
+def test_train_circle_bak():
     """
     1. generate circle data
     2. visualize circle data
