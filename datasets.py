@@ -3,8 +3,9 @@ from torch.utils.data import Dataset
 
 
 class CircleDataset(Dataset):
-    def __init__(self):
+    def __init__(self, sample_num=1000):
 
+        self.sample_num = sample_num
         self.width = 0.3
         self.centerx = self.centery = self.center = 2
         self.radius = self.center * 1.5
@@ -25,7 +26,8 @@ class CircleDataset(Dataset):
             2 - out circle
             radius = 0.8
         """
-        xx = torch.randn(1000, 2)*self.radius + self.center
+        xx = torch.randn(self.sample_num, 2)*self.radius + \
+            self.center
 
         return xx
 
