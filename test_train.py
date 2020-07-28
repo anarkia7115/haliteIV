@@ -10,7 +10,7 @@ from torch.utils.data import Dataset, DataLoader
 
 from dql_model import QNet
 from visualize_model import visualize_q_net
-from datasets import CircleDataset
+from datasets import CircleDataset, BinaryCircleDataset
 
 
 def target_func(k, b):
@@ -183,8 +183,11 @@ def init_model_layers_axs(model, plot, gs, layer_ids):
     return ax_mat
 
 
-def load_circle_data():
-    ds = CircleDataset(sample_num=20)
+def load_circle_data(binary=False):
+    if binary:
+        ds = BinaryCircleDataset(sample_num=1000)
+    else:
+        ds = CircleDataset(sample_num=1000)
 
     mesh = create_data_mesh(ds)
     train_size = int(len(ds) * 0.8)
@@ -197,12 +200,31 @@ def load_circle_data():
     return dl_tr, dl_te
 
 
+def compute_precision(dl_te, model):
+    with torch.no_grad():
+        precision_list = []
+        for xx, yy in dl_te:
+            precision = precision_score(
+                yy, 
+                model(xx).argmax(dim=-1), 
+                average='micro')
+
+            precision_list.append(precision)
+        precision = np.mean(precision_list)
+    return precision
+
+
 def test_train_circle():
-    dl_tr, dl_te = load_circle_data()
+    # dl_tr, dl_te = load_circle_data()
+    # q_net = QNet(2, 3)
+    dl_tr, dl_te = load_circle_data(binary=True)
     q_net = QNet(2, 3)
+
     optimizer = torch.optim.SGD(q_net.parameters(), lr=0.001)
 
     loss_func = nn.NLLLoss()
+
+    writer = SummaryWriter()
 
     max_epoches = 100
     for epoch in range(max_epoches):
@@ -211,13 +233,16 @@ def test_train_circle():
             loss_val = loss_func(y_lsm, yy)
             loss_val.backward()
             optimizer.step()
+
         if epoch % 10 == 9:
-            print(f"epoch: {epoch}")
-            print(f"loss: {loss_val}")
-            print(f"y_lsm: {y_lsm}")
-            print(f"xx: {xx}")
-            print(f"yy: {yy}")
-    
+            precision = compute_precision(dl_te, q_net)
+            writer.add_scalars("training_stats", {
+                "loss": loss_val, 
+                "precision": precision
+            }, global_step=epoch)
+            # print(f"epoch: {epoch}")
+            # print(f"loss: {loss_val}")
+            # print(f"precision: {precision}")
 
 
 def test_train_circle_bak():
