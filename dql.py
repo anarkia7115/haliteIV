@@ -11,6 +11,7 @@ from visualize_model import \
     visualize_q_net
 from dql_model import QNet, DataLoader, ModelTranner
 from simulation import EnvRunner
+import config
 
 class HyperParams:
     def __init__(self, learning_rate, discount_factor):
@@ -201,9 +202,9 @@ def show_episode_infomation(episode, q_table, steps, epsilon):
         assert len(action_axs) == feature_num
 
         # draw q table
-        draw_matrix(
-            np.apply_along_axis(np.argmax, 2, q_table), 
-            fig=plot1, ax=ax_q_table)
+        # draw_matrix(
+        #     np.apply_along_axis(np.argmax, 2, q_table), 
+        #     fig=plot1, ax=ax_q_table)
         plt.pause(0.01)
 
         # aggregate steps info
@@ -248,9 +249,10 @@ def run_with_q_net(env, q_net):
 
     while not done:
         env.render()
-        action = q_net.forward(
-                torch.Tensor(np.expand_dims(state_t, 0))
-            ).argmax().item()
+        with torch.no_grad():
+            action = q_net.forward(
+                    torch.Tensor(np.expand_dims(state_t, 0))
+                ).argmax().item()
 
         observation, reward, done, info = env.step(action)
 
@@ -271,18 +273,18 @@ def main_dql():
     """
 
     # model
-    q_net = QNet(2, 3)
-    q_hat = QNet(2, 3)
+    q_net = QNet(2, 3).to(config.DEVICE)
+    q_hat = QNet(2, 3).to(config.DEVICE)
     q_hat.load_state_dict(q_net.state_dict())
 
-    trainer = ModelTranner(q_net, lr=0.1)
+    trainer = ModelTranner(q_net, lr=0.001)
 
     # initialize env
     env = get_env()
-    observation = env.reset()
+    env.reset()
 
     # initialize ml
-    mini_batch_size = 256
+    mini_batch_size = 128
     dl = DataLoader(batch_size=mini_batch_size)
 
     runner = EnvRunner(
@@ -290,15 +292,7 @@ def main_dql():
 
     warmup_steps = 5
 
-    # warmup
-    runner.run_n_episode(warmup_steps)
-
-    # run and train
-    play_rounds = 3
-    q_hat_update_period = 2
-
-    # run_with_q_net(env, q_net)
-
+    # initialize visualization
     fig1 = plt.figure(1, figsize=(15, 10))
     gs = fig1.add_gridspec(4, 6)
     ax_q_table = fig1.add_subplot(gs[:2, :2])
@@ -315,23 +309,46 @@ def main_dql():
             action_axs, ax_q_table, 
             q_net, env)
 
-    for epoch in range(1000):
-        print(f"epoch: {epoch}")
-        runner.run_n_episode(play_rounds)
-        xx, yy = dl.data_x, dl.data_y
-        # xx, yy = dl.next_batch()
-        trainer.train(xx, yy, q_hat)
+    # warmup
+    runner.run_n_episode(warmup_steps)
 
-        # update q_hat periodically
-        if epoch % q_hat_update_period == q_hat_update_period -1:
-            q_hat.load_state_dict(q_net.state_dict())
-            dl.clear()
+    # run and train
+    q_hat_update_period = 3000
 
-        if epoch % 100 == 99:
+    # run_with_q_net(env, q_net)
+    """
+    1. warm-up
+    2. with every certain steps
+        a. sample from dl
+        b. backward loss and step for q_net
+    3. update q_hat
+    4. repeat n episodes
+    """
+
+    step = 0
+    max_episode = 3000
+    for episode in range(max_episode):
+        print(f"episode: {episode}")
+        done = False
+        state_t = env.reset()
+        while not done:
+            done = runner.run_one_step(state_t)
+            # sample
+            xx, yy = dl.next_batch()
+            # backward
+            loss, grad = trainer.train(xx, yy, q_hat)
+
+            if step % q_hat_update_period == q_hat_update_period - 1:
+                q_hat.load_state_dict(q_net.state_dict())
+                print("reassign q hat")
+
+            step += 1
+            # end of while
+
+        print(f"loss: {loss}")
+        # print(f"grad: {grad}")
+        if episode % 100 == 99:
             run_with_q_net(env, q_net)
-
-        if epoch % 5 == 4:
-            _visualizer()
 
     env.close()
 

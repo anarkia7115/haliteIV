@@ -3,6 +3,7 @@ import gym
 import torch
 
 from dql_model import DataLoader
+import config
 
 
 class EnvRunner:
@@ -15,41 +16,39 @@ class EnvRunner:
 
         self.total_round = 0
 
+    def run_one_step(self, state_t):
+        # check epsilon
+        if np.random.uniform(0, 1) > self.epsilon:
+            with torch.no_grad():
+                action = self.q_hat.forward(
+                        torch.Tensor(np.expand_dims(state_t, 0)).to(config.DEVICE)
+                    ).argmax().item()
+        else:
+            action = self.env.action_space.sample()
+
+        # take one step
+        state_tp1, reward, done, _ = self.env.step(action)
+
+        # change reward
+        if state_tp1[0] > 0.5:  # pass flag
+            reward = 0
+
+        # save state (s, a, r, s’) into {replay}
+        if not done:
+            self.history.append(
+                (state_t, action, reward, state_tp1), 1)
+        else:
+            self.history.append(
+                (state_t, action, reward, state_t), 0)
+
+        return done
+
     def run_one_episode(self, episode):
         done = False
         state_t = self.env.reset()
 
-        steps = 0
-
         while not done:
-
-            # check epsilon
-            if np.random.uniform(0, 1) > self.epsilon:
-                action = self.q_hat.forward(
-                        torch.Tensor(np.expand_dims(state_t, 0))
-                    ).argmax().item()
-            else:
-                action = self.env.action_space.sample()
-
-            # take one step
-            state_tp1, reward, done, _ = self.env.step(action)
-
-            # change reward
-            if state_tp1[0] > 0.5:  # pass flag
-                reward = 0
-
-            # save state (s, a, r, s’) into {replay}
-            if not done:
-                self.history.append(
-                    (state_t, action, reward, state_tp1), 1)
-            else:
-                self.history.append(
-                    (state_t, action, reward, state_t), 0)
-
-            steps += 1
-            # end of while
-
-        # print(steps)
+            done = self.run_one_step(state_t)
 
         self.total_round += 1
 
