@@ -1,6 +1,8 @@
 import torch
 from torch import nn
 
+import config
+
 class OurModule(nn.Module):
     def __init__(self, num_inputs, num_classes, dropout_prob=0.3):
         super(OurModule, self).__init__()
@@ -23,8 +25,8 @@ if __name__ == "__main__":
     v = torch.FloatTensor([[2, 3]])
     out = net(v)
 
-    cnet = net.to('cuda')
-    cv = v.to('cuda')
+    cnet = net.to(config.DEVICE)
+    cv = v.to(config.DEVICE)
 
     cnet(cv)
 
