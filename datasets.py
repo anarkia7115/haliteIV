@@ -1,3 +1,4 @@
+import collections
 import matplotlib.pyplot as plt
 
 import numpy as np
@@ -111,3 +112,23 @@ class CircleDataset(Dataset):
             return 1
         else:
             return 2
+
+
+Replay = collections.namedtuple(
+        "Replay", field_names=[
+        "state_t", "best_action_t", 
+        "reward", "state_tp1", "done"])
+
+class ReplayBuffer(Dataset):
+    def __init__(self, maxlen=20000):
+        self.maxlen = maxlen
+        self.buffer = collections.deque(maxlen=self.maxlen)
+
+    def __len__(self):
+        return len(self.buffer)
+
+    def __getitem__(self, idx):
+        return self.buffer[idx]
+
+    def append(self, x:Replay):
+        self.buffer.append(x)
