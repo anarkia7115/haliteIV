@@ -1,7 +1,9 @@
 import os
 import time
+from collections import Counter
 
 import torch
+from torch.utils.tensorboard import SummaryWriter
 import matplotlib.pyplot as plt
 import numpy as np
 import gym
@@ -243,18 +245,29 @@ def show_episode_infomation(episode, q_table, steps, epsilon):
         plt.pause(0.001)
 
 
-def run_with_q_net(env, q_net):
+def run_with_q_net(env, q_net, writer:SummaryWriter):
     done = False
     state_t = env.reset()
+    step = 0
 
     while not done:
         env.render()
         with torch.no_grad():
-            action = q_net.forward(
-                    torch.Tensor(np.expand_dims(state_t, 0))
-                ).argmax().item()
+            state_t = torch.tensor(state_t).unsqueeze(0).float()
+            action_v = q_net(state_t)
+            action = action_v.argmax().item()
 
-        observation, reward, done, info = env.step(action)
+            #print(f"state:{state_t}\taction_v:{action_v}\taction:{action}")
+            writer.add_scalar("action", 
+                action)
+            writer.add_scalars("action_v", {
+                "action_v0": action_v[0][0], 
+                "action_v1": action_v[0][1], 
+                "action_v2": action_v[0][2], 
+                })
+
+        state_t, _, done, _ = env.step(action)
+        step += 1
 
 
 def main_dql():
@@ -277,18 +290,22 @@ def main_dql():
     q_hat = QNet(2, 3).to(config.DEVICE)
     q_hat.load_state_dict(q_net.state_dict())
 
-    trainer = ModelTranner(q_net, lr=0.001)
+    trainer = ModelTranner(q_net, lr=0.0001)
 
     # initialize env
     env = get_env()
     env.reset()
+
+    # initialize tb writer
+    writer = SummaryWriter()
 
     # initialize ml
     mini_batch_size = 128
     dl = DataLoader(batch_size=mini_batch_size)
 
     runner = EnvRunner(
-        env, history=dl, q_hat=q_hat, epsilon=1)
+        env, history=dl, q_hat=q_hat, epsilon=1, 
+        writer=writer)
 
     warmup_steps = 5
 
@@ -313,7 +330,7 @@ def main_dql():
     runner.run_n_episode(warmup_steps)
 
     # run and train
-    q_hat_update_period = 3000
+    q_hat_update_period = 8000
 
     # run_with_q_net(env, q_net)
     """
@@ -327,28 +344,46 @@ def main_dql():
 
     step = 0
     max_episode = 3000
+    render_iter = 0
     for episode in range(max_episode):
         print(f"episode: {episode}")
         done = False
         state_t = env.reset()
+        episode_step = 0
         while not done:
-            done = runner.run_one_step(state_t)
+            done, state_tp1 = runner.run_one_step(state_t)
+            state_t = state_tp1
             # sample
             xx, yy = dl.next_batch()
+            #for row in xx:
+            #    print(row)
+            #print(xx)
             # backward
             loss, grad = trainer.train(xx, yy, q_hat)
+            #print(f"grad:{grad}")
 
             if step % q_hat_update_period == q_hat_update_period - 1:
                 q_hat.load_state_dict(q_net.state_dict())
                 print("reassign q hat")
 
             step += 1
+            episode_step += 1
             # end of while
+        print(f"finish_step: {episode_step}")
+        runner.epsilon_update(episode)
 
+        for name, param in q_net.named_parameters():
+            if "bias" not in name:
+                writer.add_histogram(name, param)
+
+
+        writer.add_scalar("loss", loss)
+        writer.flush()
         print(f"loss: {loss}")
-        # print(f"grad: {grad}")
-        if episode % 100 == 99:
-            run_with_q_net(env, q_net)
+        #print(f"grad: {grad}")
+        if episode % 10 == 9:
+            run_with_q_net(env, q_net, writer)
+            render_iter += 1
 
     env.close()
 

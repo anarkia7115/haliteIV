@@ -23,8 +23,18 @@ class QNet(nn.Module):
             nn.Tanh(), 
             nn.Linear(30, num_classes)
         )
+        self.N = torch.diag(torch.tensor(
+            [   1/(0.6+1.2), 
+                1/(0.07*2)]))
+
+        self.B = torch.tensor(
+            [-1.2, -0.07])
 
     def forward(self, x):
+        # normalization
+        with torch.no_grad():
+            x = torch.mm((x - self.B), self.N)
+        #print(f"normalized x: {x}")
         return self.pipe(x)
 
 
@@ -47,9 +57,9 @@ class ModelTranner:
 
         true_y = self.compute_target(xx, yy, q_hat)
 
-        # print(f"prob_y: {prob_y}")
-        # print(f"pred_y: {pred_y}")
-        # print(f"true_y: {true_y}")
+        #print(f"prob_y: {prob_y}")
+        #print(f"pred_y: {pred_y}")
+        #print(f"true_y: {true_y}")
         return self.loss_func(pred_y, true_y)
 
     def compute_target(self, xx, yy, q_hat):
@@ -82,7 +92,7 @@ class ModelTranner:
 
 
 class DataLoader:
-    def __init__(self, x=None, y=None, batch_size=32, memory_size=2000):
+    def __init__(self, x=None, y=None, batch_size=32, memory_size=20000):
         self.memory_size = memory_size
 
         if x is None and y is None:
@@ -96,6 +106,7 @@ class DataLoader:
 
     def append(self, x, y):
         self.data_x.append(x)
+        #print(f"appending x[0][1]: {x[0][1]}")
         self.data_y.append(y)
 
     def clear(self):
